@@ -13,6 +13,7 @@
     "@ag.ds-next/react": "^1.31.1",
     "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
+    "currency.js": "^2.0.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

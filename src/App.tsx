@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import currency from 'currency.js'
 import { Box } from '@ag.ds-next/react/box'
 import { Stack } from '@ag.ds-next/react/stack'
 import { PageContent } from '@ag.ds-next/react/content'
@@ -10,6 +11,7 @@ import { Select } from '@ag.ds-next/react/select'
 import { Button, ButtonGroup } from '@ag.ds-next/react/button'
 import { FormStack } from '@ag.ds-next/react/form-stack'
 import { PageAlert } from '@ag.ds-next/react/page-alert'
+import { Card, CardInner } from '@ag.ds-next/react/card'
 
 interface FormData {
   organizationName: string
@@ -25,6 +27,26 @@ interface FormData {
   destinationCountry: string
   intendedUse: string
   exportDate: string
+  exportValue: string
+  exportCurrency: string
+}
+
+// Exchange rates to AUD (approximate rates for demonstration)
+const EXCHANGE_RATES: Record<string, number> = {
+  AUD: 1,
+  USD: 1.55,
+  EUR: 1.68,
+  GBP: 1.98,
+  JPY: 0.0104,
+  CNY: 0.214,
+  INR: 0.0185,
+  SGD: 1.14,
+  NZD: 0.93,
+  KRW: 0.00115,
+  THB: 0.045,
+  MYR: 0.345,
+  IDR: 0.000096,
+  VND: 0.000061,
 }
 
 function App() {
@@ -41,11 +63,14 @@ function App() {
     quantity: '1',
     destinationCountry: '',
     intendedUse: '',
-    exportDate: ''
+    exportDate: '',
+    exportValue: '',
+    exportCurrency: ''
   })
 
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
   const [submitted, setSubmitted] = useState(false)
+  const [convertedAUD, setConvertedAUD] = useState<string | null>(null)
 
   const handleChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -121,10 +146,32 @@ function App() {
       quantity: '1',
       destinationCountry: '',
       intendedUse: '',
-      exportDate: ''
+      exportDate: '',
+      exportValue: '',
+      exportCurrency: ''
     })
     setErrors({})
     setSubmitted(false)
+    setConvertedAUD(null)
+  }
+
+  const handleConvertToAUD = () => {
+    if (!formData.exportValue || !formData.exportCurrency) {
+      return
+    }
+
+    const value = parseFloat(formData.exportValue)
+    if (isNaN(value)) {
+      return
+    }
+
+    const rate = EXCHANGE_RATES[formData.exportCurrency]
+    if (!rate) {
+      return
+    }
+
+    const audValue = currency(value).multiply(rate)
+    setConvertedAUD(audValue.format())
   }
 
   return (
@@ -310,6 +357,77 @@ function App() {
               message={errors.exportDate}
               maxWidth="xl"
             />
+
+            <H2>Export Value</H2>
+
+            <TextInput
+              label="Export Value"
+              type="number"
+              hint="Enter the total value of goods being exported"
+              value={formData.exportValue}
+              onChange={(e) => {
+                handleChange('exportValue', e.target.value)
+                setConvertedAUD(null)
+              }}
+              maxWidth="xl"
+            />
+
+            <Select
+              label="Currency"
+              placeholder="Select currency"
+              value={formData.exportCurrency}
+              onChange={(e) => {
+                handleChange('exportCurrency', e.target.value)
+                setConvertedAUD(null)
+              }}
+              options={[
+                { label: 'Australian Dollar (AUD)', value: 'AUD' },
+                { label: 'US Dollar (USD)', value: 'USD' },
+                { label: 'Euro (EUR)', value: 'EUR' },
+                { label: 'British Pound (GBP)', value: 'GBP' },
+                { label: 'Japanese Yen (JPY)', value: 'JPY' },
+                { label: 'Chinese Yuan (CNY)', value: 'CNY' },
+                { label: 'Indian Rupee (INR)', value: 'INR' },
+                { label: 'Singapore Dollar (SGD)', value: 'SGD' },
+                { label: 'New Zealand Dollar (NZD)', value: 'NZD' },
+                { label: 'South Korean Won (KRW)', value: 'KRW' },
+                { label: 'Thai Baht (THB)', value: 'THB' },
+                { label: 'Malaysian Ringgit (MYR)', value: 'MYR' },
+                { label: 'Indonesian Rupiah (IDR)', value: 'IDR' },
+                { label: 'Vietnamese Dong (VND)', value: 'VND' }
+              ]}
+              maxWidth="xl"
+            />
+
+            {formData.exportValue && formData.exportCurrency && (
+              <Box>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleConvertToAUD}
+                >
+                  Convert to AUD
+                </Button>
+              </Box>
+            )}
+
+            {convertedAUD && (
+              <Card background="bodyAlt">
+                <CardInner>
+                  <Stack gap={1}>
+                    <Text fontSize="sm" color="muted" fontWeight="bold">
+                      Converted Value
+                    </Text>
+                    <Text fontSize="xl" fontWeight="bold">
+                      {convertedAUD} AUD
+                    </Text>
+                    <Text fontSize="sm" color="muted">
+                      Based on indicative exchange rates. Actual rates may vary.
+                    </Text>
+                  </Stack>
+                </CardInner>
+              </Card>
+            )}
 
             <ButtonGroup>
               <Button type="submit">Submit Application</Button>
